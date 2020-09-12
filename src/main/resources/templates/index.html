@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+</head>
+<body>
+	<div class="container">
+		<div class="row justify-content-center">
+			<div class="col-12 col-md-5">
+				<div class="row">
+					<div class="col-12 mt-5">
+						<input type="text" class="form-control" id="nombre" placeholder="Nombre de usuario">
+						<h3 class="display-3">Chat</h3>
+						<div id="mensajes" class="card card-body">
+						</div>
+					</div>
+					<div class="col-12 mt-3">
+						<textArea id="chat" class="form-control"></textArea>
+						<button type="button" id="enviar" class="btn btn-primary btn-block mt-3">Enviar</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+		var socket = new SockJS("/primerSocket");
+		var stompClient = Stomp.over(socket);
+		stompClient.connect({}, function(response) {
+				stompClient.subscribe('/socketRead/read', function (response) {
+					var json = JSON.parse(response.body);
+					if(json.usuario != $("#nombre").val()) {
+						const Toast = Swal.mixin({
+							  toast: true,
+							  position: 'top-end',
+							  showConfirmButton: false,
+							  timer: 3000,
+							  timerProgressBar: true,
+							  onOpen: (toast) => {
+							    toast.addEventListener('mouseenter', Swal.stopTimer)
+							    toast.addEventListener('mouseleave', Swal.resumeTimer)
+							  }
+							});
+							Toast.fire({
+							  icon: 'warning',
+							  title: '¡Nuevo mensaje!'
+							});	
+					} else {
+						Swal.fire("¡Mensaje enviado!", "", "success");
+					}
+					var fecha = new Date(json.fecha);
+					var fechaFormat = fecha.getDate() + "-" + fecha.getMonth() + "-" + fecha.getFullYear();
+		            $("#mensajes").append("<span class='text-secondary'>Fecha:"+ fechaFormat +"</span><p class='text-info'>" + json.mensaje + "</p><small> By:" + json.usuario + "</small><hr><br/>");
+		        });
+		});
+		$("#enviar").click(event => {
+			stompClient.send("/socketSend/send", {}, JSON.stringify({mensaje: $("#chat").val(), usuario: $("#nombre").val()}));
+		});
+	</script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
